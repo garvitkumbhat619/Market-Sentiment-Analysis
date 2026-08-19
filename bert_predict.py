@@ -1,7 +1,7 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 
-MODEL_PATH = "./models/bert_sentiment"
+MODEL_PATH = "garvitkumbhat/market-sentiment-bert"
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
 
