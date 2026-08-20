@@ -19,15 +19,8 @@ async def lifespan(app: FastAPI):
     
     print("Loading TF-IDF vectorizer...")
     app.state.tfidf = joblib.load("models/tfidf_vectorizer.pkl")
-    print("Loading BERT tokenizer...")
-    
-    MODEL_ID="garvitkumbhat/market-sentiment-bert"
-    HF_TOKEN = os.getenv("HF_TOKEN")
-    
-    app.state.tokenizer = AutoTokenizer.from_pretrained(MODEL_ID,token=HF_TOKEN)
-    print("Loading BERT model...")
-    app.state.bert_model = AutoModelForSequenceClassification.from_pretrained(MODEL_ID,token=HF_TOKEN)
-    app.state.bert_model.eval()  # Set BERT model to evaluation mode
+    app.state.tokenizer = None
+    app.state.bert_model = None
     print("ALL models loaded successfully.")
     yield
     # Shutdown code
@@ -54,7 +47,33 @@ async def read_root():
 #-------------------------------------------------------------------------
 # Prediction function
 #-----------------------------------------------------------
+def load_bert(app):
 
+    if app.state.bert_model is None:
+
+        print("Loading BERT model...")
+
+        MODEL_ID = "YOUR_USERNAME/market-sentiment-bert"
+
+        HF_TOKEN = os.getenv("HF_TOKEN")
+
+        app.state.tokenizer = AutoTokenizer.from_pretrained(
+            MODEL_ID,
+            token=HF_TOKEN
+        )
+
+        app.state.bert_model = (
+            AutoModelForSequenceClassification
+            .from_pretrained(
+                MODEL_ID,
+                token=HF_TOKEN
+            )
+        )
+
+        app.state.bert_model.eval()
+
+        print("BERT model loaded successfully.")
+        
 def predict_sentiment(tweet: str, tokenizer, bert_model):
     inputs = tokenizer(
         tweet,
@@ -106,7 +125,10 @@ def predict_sentiment_xgb(
 
 @app.post("/predict_bert")
 async def predict(request: Tweet):
-
+    await run_in_threadpool(
+        load_bert,
+        app
+    )
     prediction, confidence = await run_in_threadpool(
         predict_sentiment,
         request.text,
