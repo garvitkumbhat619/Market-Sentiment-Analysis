@@ -9,20 +9,24 @@ import joblib
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-
+import os
 from predict import preprocess_tweet
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Loading XGBoost model...")
     app.state.xgb_model = joblib.load("models/xgboost_sentiment_model.pkl")
+    
     print("Loading TF-IDF vectorizer...")
     app.state.tfidf = joblib.load("models/tfidf_vectorizer.pkl")
     print("Loading BERT tokenizer...")
+    
     MODEL_ID="garvitkumbhat/market-sentiment-bert"
-    app.state.tokenizer = AutoTokenizer.from_pretrained(MODEL_ID)
+    HF_TOKEN = os.getenv("HF_TOKEN")
+    
+    app.state.tokenizer = AutoTokenizer.from_pretrained(MODEL_ID,token=HF_TOKEN)
     print("Loading BERT model...")
-    app.state.bert_model = AutoModelForSequenceClassification.from_pretrained(MODEL_ID)
+    app.state.bert_model = AutoModelForSequenceClassification.from_pretrained(MODEL_ID,token=HF_TOKEN)
     app.state.bert_model.eval()  # Set BERT model to evaluation mode
     print("ALL models loaded successfully.")
     yield
